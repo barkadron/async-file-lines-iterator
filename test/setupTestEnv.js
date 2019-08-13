@@ -1,4 +1,3 @@
-import chai from 'chai';
 import { JSDOM } from 'jsdom';
 import encoding from 'text-encoding';
 
@@ -13,9 +12,7 @@ Object.defineProperties(global, {
     ...Object.getOwnPropertyDescriptors(global),
 });
 
-const { assert } = chai;
-
-function checkAsync(done, check) {
+export function checkAsync(done, check) {
     let err = null;
     try {
         check();
@@ -26,5 +23,17 @@ function checkAsync(done, check) {
     }
 }
 
-export { assert };
-export { checkAsync };
+export function generateLines({ lineText = 'x', lineLength = 100, linesCount = 10 } = {}) {
+    const line = lineText.repeat(lineLength);
+    return Array.from(Array(linesCount).fill(line), (elem, index) => {
+        const lineNumber = (index + 1).toString().padStart(linesCount.toString().length, '0');
+        const lineBreak = index !== linesCount - 1 ? '\n' : '';
+        return `${lineNumber}__${elem}${lineBreak}`;
+    });
+}
+
+export function createTestFile({ lines = [] }) {
+    const fileName = 'test-file.txt';
+    const fileType = 'text/plain';
+    return new File(lines, fileName, { type: fileType });
+}
