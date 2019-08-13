@@ -1,0 +1,10 @@
+.idea
+.vscode
+.nyc_output
+.coveralls.yml
+node_modules
+coverage
+dist
+es
+lib
+*.log

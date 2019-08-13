@@ -1,0 +1,82 @@
+{
+    "name": "async-file-lines-iterator",
+    "version": "0.0.1",
+    "description": "This package allows you to iterate through file lines asynchronously",
+    "license": "MIT",
+    "author": "Andrey Barkalov <barkadron@mail.ru>",
+    "keywords": [],
+    "homepage": "https://github.com/barkadron/async-file-lines-iterator#readme",
+    "repository": "https://github.com/barkadron/async-file-lines-iterator.git",
+    "browser": "lib/index.js",
+    "module": "es/index.js",
+    "files": [
+        "src",
+        "lib",
+        "es",
+        "dist"
+    ],
+    "scripts": {
+        "build": "npm run build:commonjs && npm run build:umd && npm run build:umd:min && npm run build:es",
+        "build:commonjs": "cross-env BABEL_ENV=commonjs babel src --out-dir lib",
+        "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
+        "build:umd": "cross-env BABEL_ENV=commonjs NODE_ENV=development webpack",
+        "build:umd:min": "cross-env BABEL_ENV=commonjs NODE_ENV=production webpack",
+        "clean": "rimraf lib dist es .nyc_output coverage",
+        "lint": "eslint --debug src test",
+        "lint:write": "eslint src test --fix",
+        "prepare": "npm run clean && npm run lint && npm run test && npm run build",
+        "prepublishOnly": "safe-publish-latest",
+        "prettier": "prettier --write src/**/*.js",
+        "test": "cross-env BABEL_ENV=commonjs mocha --require @babel/register --reporter spec test/*.test.js",
+        "test:coverage": "rimraf .nyc_output coverage && nyc --reporter=lcov --reporter=text npm test",
+        "test:coverage:coveralls": "nyc npm test && nyc report --reporter=text-lcov | coveralls"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged"
+        }
+    },
+    "lint-staged": {
+        "*.js": [
+            "npm run lint:write",
+            "git add"
+        ]
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@babel/cli": "^7.5.5",
+        "@babel/core": "^7.5.5",
+        "@babel/plugin-proposal-class-properties": "^7.5.5",
+        "@babel/plugin-transform-modules-commonjs": "^7.5.0",
+        "@babel/plugin-transform-runtime": "^7.5.5",
+        "@babel/preset-env": "^7.5.5",
+        "@babel/register": "^7.5.5",
+        "@babel/runtime": "^7.5.5",
+        "babel-eslint": "^10.0.2",
+        "babel-loader": "^8.0.6",
+        "camelcase": "^5.3.1",
+        "chai": "^4.2.0",
+        "coveralls": "^3.0.6",
+        "cross-env": "^5.2.0",
+        "eslint": "^6.1.0",
+        "eslint-config-airbnb-base": "^14.0.0",
+        "eslint-config-prettier": "^6.0.0",
+        "eslint-loader": "^2.2.1",
+        "eslint-plugin-babel": "^5.3.0",
+        "eslint-plugin-import": "^2.18.2",
+        "eslint-plugin-prettier": "^3.1.0",
+        "husky": "^3.0.3",
+        "istanbul": "^0.4.5",
+        "jsdom": "^15.1.1",
+        "lint-staged": "^9.2.1",
+        "mocha": "^6.2.0",
+        "nyc": "^14.1.1",
+        "prettier": "^1.18.2",
+        "prettier-eslint": "^9.0.0",
+        "rimraf": "^2.6.3",
+        "safe-publish-latest": "^1.1.2",
+        "text-encoding": "^0.7.0",
+        "webpack": "^4.39.1",
+        "webpack-cli": "^3.3.6"
+    }
+}
