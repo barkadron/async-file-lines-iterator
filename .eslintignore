@@ -1,6 +1,6 @@
-.git
-.vscode
-node_modules
-dist
-es
-lib
+/.git
+/.vscode
+/node_modules
+/dist
+/es
+/lib
