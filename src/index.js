@@ -1,14 +1,14 @@
 const defaultLinesLimit = Number.POSITIVE_INFINITY; // unlimited
 const defaultEndLinePattern = /\n/;
-const defaultChunkSize = 10 * 1024; // bytes
+const defaultChunkSize = 10 * 1024 * 1024; // 10MB
 
 class AsyncFileLinesIterator {
     constructor(
         file,
         {
+            chunkSize = defaultChunkSize, // for balance between speed and RAM usage (more chunkSize => more speed => more memory)
             linesLimit = defaultLinesLimit,
             endLinePatter = defaultEndLinePattern,
-            chunkSize = defaultChunkSize,
         } = {}
     ) {
         if (!(file && file.toString() === '[object File]')) {
@@ -16,9 +16,9 @@ class AsyncFileLinesIterator {
         }
 
         this.file = file;
-        this.endLinePatter = endLinePatter;
-        this.chunkSize = chunkSize;
+        this.chunkSize = chunkSize <= 0 ? defaultChunkSize : chunkSize;
         this.linesLimit = linesLimit;
+        this.endLinePatter = endLinePatter;
 
         this.reader = new FileReader();
         this.decoder = new TextDecoder();
@@ -28,12 +28,32 @@ class AsyncFileLinesIterator {
         this.buffer = '';
         this.needStop = false;
 
-        this.fetchLines = () => {
+        this.reader.onload = () => this.parseLines();
+        this.reader.onerror = err => this.reject(err);
+    }
+
+    async *[Symbol.asyncIterator]() {
+        while (true) {
+            const lines = await this.fetchLines(); // read lines over chunk
+            for (let i = 0; lines.length > i; i++) {
+                yield lines[i];
+            }
+
+            if (this.needStop) {
+                return null;
+            }
+        }
+    }
+
+    async fetchLines() {
+        return new Promise((resolve, reject) => {
+            this.resolve = resolve;
+            this.reject = reject;
             try {
                 if (this.lineCount === this.linesLimit) {
                     // lines limit reached
                     this.needStop = true;
-                    this.resolve(null);
+                    this.resolve([]);
                 } else if (this.offset > 0 && this.offset >= this.file.size) {
                     // no more lines in file
                     this.needStop = true;
@@ -41,61 +61,32 @@ class AsyncFileLinesIterator {
                 } else {
                     const chunk = this.file.slice(this.offset, this.offset + this.chunkSize);
                     this.reader.readAsArrayBuffer(chunk);
+                    this.offset += this.chunkSize;
                 }
             } catch (e) {
                 this.reject(e);
             }
-        };
-
-        this.parseLines = () => {
-            let lines = null;
-            try {
-                this.offset += this.chunkSize;
-                this.buffer += this.decoder.decode(this.reader.result, { stream: true }); // line can be cut in the middle of a multi-byte character
-
-                lines = this.buffer.split(this.endLinePatter); // @FIXME: loosing end-line character
-                this.buffer = lines.pop(); // don't process last line (for case if the line did cut)
-                this.lineCount += lines.length;
-
-                if (this.lineCount > this.linesLimit) {
-                    // truncate lines if read too many
-                    lines.length -= this.lineCount - this.linesLimit;
-                    this.lineCount = this.linesLimit;
-                }
-            } catch (e) {
-                this.reject(e);
-            }
-
-            return lines;
-        };
-
-        this.reader.onerror = e => {
-            this.reject(e);
-        };
-
-        this.reader.onload = () => {
-            const lines = this.parseLines();
-            this.resolve(lines);
-        };
+        });
     }
 
-    async *[Symbol.asyncIterator]() {
-        while (true) {
-            const resultLines = await new Promise((resolve, reject) => {
-                this.resolve = resolve;
-                this.reject = reject;
-                this.fetchLines(); // read lines in chunk
-            });
+    parseLines() {
+        try {
+            this.buffer += this.decoder.decode(this.reader.result, { stream: true }); // line can be cut in the middle of a multi-byte character
+            const lines = this.buffer.split(this.endLinePatter); // @FIXME: loosing end-line character
 
-            if (resultLines) {
-                for (let i = 0; resultLines.length > i; i++) {
-                    yield Promise.resolve(resultLines[i]);
-                }
+            // don't process last line (for case if the line did cut)
+            this.buffer = lines.pop();
+            this.lineCount += lines.length;
+
+            // truncate lines if read too many
+            if (this.lineCount > this.linesLimit) {
+                lines.length -= this.lineCount - this.linesLimit;
+                this.lineCount = this.linesLimit;
             }
 
-            if (this.needStop) {
-                return null;
-            }
+            this.resolve(lines);
+        } catch (e) {
+            this.reject(e);
         }
     }
 }
