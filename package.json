@@ -77,6 +77,6 @@
         "safe-publish-latest": "^1.1.2",
         "text-encoding": "^0.7.0",
         "webpack": "^4.39.1",
-        "webpack-cli": "^3.3.6"
+        "webpack-cli": "^3.3.12"
     }
 }
